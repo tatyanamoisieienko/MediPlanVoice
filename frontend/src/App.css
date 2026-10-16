@@ -1,0 +1,734 @@
+.app {
+  min-height: 100vh;
+  background: #f4f7f4;
+}
+
+.kopfzeile {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 1.5rem;
+  border-bottom: 1px solid #dce4dd;
+  background: #fff;
+}
+
+.marke {
+  display: grid;
+  width: 2.25rem;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.45rem;
+  background: #1b5e4c;
+  color: #fff;
+  font-weight: 700;
+}
+
+.markentext {
+  display: grid;
+  gap: 0.1rem;
+  color: #183d32;
+}
+
+.markentext span,
+.kopfzeilenhinweis {
+  color: #66776e;
+  font-size: 0.78rem;
+}
+
+.kopfzeilenhinweis {
+  margin-left: auto;
+}
+
+.arbeitsbereich {
+  display: grid;
+  min-height: calc(100vh - 4.5rem);
+  grid-template-columns: 14rem minmax(0, 1fr);
+}
+
+.seitenleiste {
+  padding: 1.5rem 0.75rem;
+  border-right: 1px solid #dce4dd;
+  background: #fbfcfb;
+}
+
+.seiteninhalt {
+  min-width: 0;
+  padding: 2rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+
+.navigation-titel {
+  margin: 0 0 0.65rem 0.75rem;
+  color: #75847c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.navigationsliste {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.navigationsknopf {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: #4f655a;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.navigationsknopf:hover {
+  background: #eef3ef;
+  color: #183d32;
+}
+
+.navigationsknopf[aria-current='page'] {
+  background: #e8f0eb;
+  color: #174c3c;
+  font-weight: 700;
+}
+
+.navigationszeichen {
+  display: grid;
+  width: 1.65rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid #cedbd1;
+  border-radius: 0.3rem;
+  color: #386451;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ansicht-kopf {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+}
+
+.ansicht-bereich {
+  margin: 0 0 0.35rem;
+  color: #b44e37;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ansicht-kopf h1 {
+  margin: 0;
+  color: #183d32;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.eintragszahl {
+  padding-bottom: 0.25rem;
+  color: #66776e;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ansicht-aktionen {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.primaerknopf {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #174c3c;
+  border-radius: 0.3rem;
+  background: #1b5e4c;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.primaerknopf:hover:not(:disabled) {
+  background: #174c3c;
+}
+
+.primaerknopf:disabled {
+  border-color: #bdc9c0;
+  background: #dce4dd;
+  color: #738078;
+  cursor: not-allowed;
+}
+
+.erfolgsmeldung {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid #26835e;
+  background: #eaf3ed;
+  color: #245342;
+}
+
+.buchungsformular {
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1.2rem 1.2rem;
+  border: 1px solid #d5dfd8;
+  border-top: 3px solid #1b5e4c;
+  background: #fff;
+}
+
+.formular-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.formular-kopf h2 {
+  margin: 0;
+  color: #183d32;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.formularraster {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.formularfeld {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.4rem;
+  color: #30493c;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.formularfeld-breit {
+  grid-column: 1 / -1;
+}
+
+.formularfeld small {
+  color: #718078;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.formularfeld input,
+.formularfeld select {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #bdcec2;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #243f32;
+  font: inherit;
+  font-weight: 400;
+}
+
+.formularfeld select[multiple] {
+  min-height: 7.4rem;
+  padding: 0.25rem;
+}
+
+.formularfeld input:focus-visible,
+.formularfeld select:focus-visible,
+.primaerknopf:focus-visible,
+.sekundaerknopf:focus-visible {
+  outline: 2px solid #1b5e4c;
+  outline-offset: 2px;
+}
+
+.formularmeldung {
+  margin: 1rem 0 0;
+  color: #863c2c;
+  font-size: 0.85rem;
+}
+
+.formularmeldung p {
+  margin: 0.25rem 0;
+}
+
+.pruefergebnis {
+  margin-top: 1rem;
+  padding: 0.8rem 0.9rem;
+  border-left: 3px solid;
+  font-size: 0.86rem;
+}
+
+.pruefergebnis-frei {
+  border-color: #26835e;
+  background: #eaf3ed;
+  color: #245342;
+}
+
+.pruefergebnis-konflikt {
+  border-color: #b44e37;
+  background: #fbefeb;
+  color: #713c30;
+}
+
+.pruefergebnis p {
+  margin: 0.35rem 0 0;
+}
+
+.pruefergebnis ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.buchungskonflikt {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.konfliktkopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.alternativen-knopf {
+  flex: 0 0 auto;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  color: #174c3c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.alternativen-knopf:hover {
+  color: #b44e37;
+}
+
+.alternativen-ladezustand,
+.alternativen-fehler,
+.alternativen-leer,
+.alternativen-hinweis {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
+.alternativen-fehler {
+  color: #863c2c;
+}
+
+.alternativen-leer,
+.alternativen-hinweis {
+  color: #456457;
+}
+
+.alternativenliste {
+  display: grid;
+  gap: 0;
+  margin: 0.4rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none;
+}
+
+.alternativenvorschlag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(113, 128, 120, 0.22);
+}
+
+.alternativen-metadaten {
+  display: block;
+  margin-top: 0.15rem;
+  color: #66776e;
+  font-size: 0.78rem;
+}
+
+.alternativengruende {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none;
+  color: #53675e;
+  font-size: 0.78rem;
+}
+
+.alternativengruende li::before {
+  margin-right: 0.35rem;
+  color: #26835e;
+  content: '•';
+}
+
+.buchungskonflikt {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.konfliktkopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.alternativen-knopf {
+  flex: 0 0 auto;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  color: #174c3c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.alternativen-knopf:hover {
+  color: #b44e37;
+}
+
+.alternativen-ladezustand,
+.alternativen-fehler,
+.alternativen-leer,
+.alternativen-hinweis {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
+.alternativen-fehler {
+  color: #863c2c;
+}
+
+.alternativen-leer,
+.alternativen-hinweis {
+  color: #456457;
+}
+
+.alternativenliste {
+  display: grid;
+  gap: 0;
+  margin: 0.4rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none;
+}
+
+.alternativenvorschlag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(113, 128, 120, 0.22);
+}
+
+.alternativen-metadaten {
+  display: block;
+  margin-top: 0.15rem;
+  color: #66776e;
+  font-size: 0.78rem;
+}
+
+.alternativengruende {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
+  list-style: none;
+  color: #53675e;
+  font-size: 0.78rem;
+}
+
+.alternativengruende li::before {
+  margin-right: 0.35rem;
+  color: #26835e;
+  content: '•';
+}
+
+.formularaktionen {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.tabellenrahmen {
+  width: 100%;
+  overflow-x: auto;
+  border-top: 1px solid #d5dfd8;
+  border-bottom: 1px solid #d5dfd8;
+  background: #fff;
+}
+
+.datentabelle {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.datentabelle th {
+  padding: 0.75rem 1rem;
+  color: #64756c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.datentabelle td {
+  padding: 0.85rem 1rem;
+  border-top: 1px solid #e6ece8;
+  color: #30493c;
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+.datentabelle tbody tr:hover {
+  background: #f8faf8;
+}
+
+.buchungsaktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.tabellenaktion {
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  color: #174c3c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.15rem;
+}
+
+.tabellenaktion:hover:not(:disabled) {
+  color: #b44e37;
+}
+
+.tabellenaktion:disabled {
+  color: #87928c;
+  cursor: not-allowed;
+}
+
+.tabellenaktion-loeschen {
+  color: #8e402f;
+}
+
+.loeschbestaetigung {
+  display: grid;
+  min-width: 12rem;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border-left: 2px solid #b44e37;
+  background: #fbefeb;
+  color: #713c30;
+  font-size: 0.78rem;
+  white-space: normal;
+}
+
+.loeschbestaetigung-knopf {
+  justify-self: start;
+  border-color: #c99a8e;
+  color: #713c30;
+}
+
+.hauptwert {
+  color: #183d32;
+  font-weight: 650;
+}
+
+.unterwert {
+  display: block;
+  margin-top: 0.2rem;
+  color: #718078;
+  font-size: 0.78rem;
+}
+
+.aktivstatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.aktivstatus::before {
+  width: 0.45rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #26835e;
+  content: '';
+}
+
+.aktivstatus.inaktiv::before {
+  background: #87928c;
+}
+
+.datenzustand {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.5rem 1rem;
+  border-block: 1px solid #d5dfd8;
+  background: #fff;
+  color: #53675e;
+}
+
+.datenzustand p {
+  margin: 0;
+}
+
+.ladeanzeige {
+  width: 1rem;
+  aspect-ratio: 1;
+  border: 2px solid #c8d8cd;
+  border-top-color: #1b5e4c;
+  border-radius: 50%;
+  animation: drehen 0.8s linear infinite;
+}
+
+.fehlerzustand {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.fehlerzustand strong {
+  color: #863c2c;
+}
+
+.sekundaerknopf {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #bdcec2;
+  border-radius: 0.3rem;
+  background: #fff;
+  color: #245342;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sekundaerknopf:hover {
+  background: #eff5f0;
+}
+
+.geraeteliste {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 12rem;
+}
+
+.geraeteliste span + span {
+  color: #718078;
+  font-size: 0.78rem;
+}
+
+@keyframes drehen {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+  .kopfzeile {
+    padding-inline: 1rem;
+  }
+
+  .arbeitsbereich {
+    display: block;
+  }
+
+  .seitenleiste {
+    padding: 0.6rem 0.75rem;
+    border-right: 0;
+    border-bottom: 1px solid #dce4dd;
+  }
+
+  .navigation-titel {
+    margin-bottom: 0.45rem;
+  }
+
+  .navigationsliste {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+  }
+
+  .navigationsknopf {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .seiteninhalt {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .ansicht-kopf h1 {
+    font-size: 1.75rem;
+  }
+
+  .ansicht-kopf {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ansicht-aktionen {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .formularraster {
+    grid-template-columns: 1fr;
+  }
+
+  .formularfeld-breit {
+    grid-column: auto;
+  }
+
+  .konfliktkopf {
+    flex-direction: column;
+  }
+
+  .alternativenvorschlag {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .datentabelle {
+    min-width: 38rem;
+  }
+}

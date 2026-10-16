@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+frontend/node_modules/
+frontend/dist/
+.vs/
+*.db
+*.db-shm
+*.db-wal
+# Lokale Artefakte
+*.user
+*.log
+TestResults/
+.vscode/
+.idea/
+.DS_Store
+.env*.local
