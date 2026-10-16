@@ -1,8 +1,9 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { aendereBuchung, ApiFehler, holeMedizingeraete, holeRaeume, legeBuchungAn, pruefeBuchungsverfuegbarkeit, sucheAlternativen } from '../../api/client'
 import { useApiDaten } from '../../api/useApiDaten'
-import type { AlternativenAnfrage, AlternativenErgebnis, Buchung, Buchungskonflikt, VerfuegbarkeitsErgebnis } from '../../types/api'
+import type { AlternativenAnfrage, AlternativenErgebnis, Buchung, BuchungsEntwurf, Buchungskonflikt, VerfuegbarkeitsErgebnis } from '../../types/api'
 import { Datenzustand } from '../../components/Datenzustand'
+import { TextBuchungsanfrage } from './TextBuchungsanfrage'
 
 type Props = {
   beimSpeichern: (buchung: Buchung) => void
@@ -40,6 +41,44 @@ function formularWerteAusBuchung(buchung?: Buchung): FormularWerte {
     ende: lokaleZeitFuerEingabe(buchung.ende),
     raumId: String(buchung.raumId),
     medizingeraetIds: [...buchung.medizingeraetIds],
+  }
+}
+
+/**
+ * Überträgt ausschließlich sicher erkannte Werte. Als fehlend markierte Angaben,
+ * Uhrzeiten ohne Datum und nicht (mehr) aktive Ressourcen bleiben leer.
+ */
+function formularWerteAusEntwurf(
+  entwurf: BuchungsEntwurf,
+  aktiveRaumIds: Set<number>,
+  aktiveGeraetIds: Set<number>,
+): { werte: FormularWerte; hinweise: string[] } {
+  const fehlend = new Set(entwurf.fehlendeAngaben)
+  const hinweise: string[] = []
+  const datum = !fehlend.has('Datum') ? entwurf.datum : null
+  const beginn = datum && !fehlend.has('Beginn') && entwurf.beginn ? `${datum}T${entwurf.beginn.slice(0, 5)}` : ''
+  const ende = datum && !fehlend.has('Ende') && entwurf.ende ? `${datum}T${entwurf.ende.slice(0, 5)}` : ''
+  if (!datum && (entwurf.beginn || entwurf.ende)) {
+    hinweise.push('Erkannte Uhrzeiten wurden ohne Datum nicht übernommen.')
+  }
+
+  const raum = !fehlend.has('Raum') ? entwurf.raum : null
+  const raumId = raum && aktiveRaumIds.has(raum.id) ? String(raum.id) : ''
+  if (raum && !raumId) hinweise.push(`Der Raum „${raum.name}“ ist nicht mehr aktiv und wurde nicht übernommen.`)
+
+  const geraete = fehlend.has('Medizingeraet') ? [] : entwurf.medizingeraete
+  const medizingeraetIds = geraete.filter((geraet) => aktiveGeraetIds.has(geraet.id)).map((geraet) => geraet.id)
+  if (medizingeraetIds.length < geraete.length) hinweise.push('Nicht mehr aktive Medizingeräte wurden nicht übernommen.')
+
+  return {
+    werte: {
+      titel: !fehlend.has('Titel oder Zweck') ? entwurf.titelOderZweck?.trim() ?? '' : '',
+      beginn,
+      ende,
+      raumId,
+      medizingeraetIds,
+    },
+    hinweise,
   }
 }
 
@@ -84,11 +123,30 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
 
   function setFeld<K extends keyof FormularWerte>(feld: K, wert: FormularWerte[K]) {
     setWerte((bisher) => ({ ...bisher, [feld]: wert }))
+    verwerfePruefung()
+  }
+
+  function verwerfePruefung() {
     setPruefergebnis(null)
     setServerFehler('')
     setAlternativen({})
     setUebernahmeHinweis('')
     alternativenAnfrageVersion.current += 1
+  }
+
+  function uebernehmeEntwurf(entwurf: BuchungsEntwurf) {
+    const { werte: entwurfswerte, hinweise } = formularWerteAusEntwurf(
+      entwurf,
+      new Set(aktiveRaeume.map((raum) => raum.id)),
+      new Set(aktiveGeraete.map((geraet) => geraet.id)),
+    )
+    setWerte(entwurfswerte)
+    verwerfePruefung()
+    setValidierungsfehler([])
+    setUebernahmeHinweis([
+      'Erkannte Angaben wurden in das Formular übernommen. Bitte fehlende Angaben ergänzen, alles kontrollieren und die Verfügbarkeit prüfen.',
+      ...hinweise,
+    ].join(' '))
   }
 
   async function ladeAlternativen(konflikt: Buchungskonflikt) {
@@ -149,6 +207,8 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
     setPruefergebnis(null)
     if (fehler.length > 0) return
 
+    // Ändert sich das Formular während der Prüfung, gilt deren Ergebnis nicht mehr.
+    const version = alternativenAnfrageVersion.current
     setPruefStatus('prueft')
     try {
       const ergebnis = await pruefeBuchungsverfuegbarkeit({
@@ -158,9 +218,11 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
         medizingeraetIds: werte.medizingeraetIds,
         ...(buchungZumBearbeiten ? { auszuschliessendeBuchungId: buchungZumBearbeiten.id } : {}),
       })
+      if (version !== alternativenAnfrageVersion.current) return
       setPruefergebnis(ergebnis)
       if (!ergebnis.anfrageGueltig) setValidierungsfehler(ergebnis.fehler)
     } catch (fehlerBeimPruefen) {
+      if (version !== alternativenAnfrageVersion.current) return
       if (fehlerBeimPruefen instanceof ApiFehler && istVerfuegbarkeitsergebnis(fehlerBeimPruefen.daten)) {
         setPruefergebnis(fehlerBeimPruefen.daten)
         setValidierungsfehler(fehlerBeimPruefen.daten.fehler)
@@ -231,6 +293,9 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
           <></>
         </Datenzustand>
       ) : (
+        <>
+        {!buchungZumBearbeiten && <TextBuchungsanfrage beimUebernehmen={uebernehmeEntwurf} deaktiviert={speichert} />}
+
         <form onSubmit={pruefeVerfuegbarkeit} noValidate>
           <div className="formularraster">
             <label className="formularfeld formularfeld-breit">
@@ -384,6 +449,7 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
             </button>
           </div>
         </form>
+        </>
       )}
     </section>
   )

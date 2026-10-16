@@ -233,7 +233,8 @@
 }
 
 .formularfeld input,
-.formularfeld select {
+.formularfeld select,
+.formularfeld textarea {
   width: 100%;
   min-height: 2.6rem;
   padding: 0.55rem 0.65rem;
@@ -250,8 +251,13 @@
   padding: 0.25rem;
 }
 
+.formularfeld textarea {
+  resize: vertical;
+}
+
 .formularfeld input:focus-visible,
 .formularfeld select:focus-visible,
+.formularfeld textarea:focus-visible,
 .primaerknopf:focus-visible,
 .sekundaerknopf:focus-visible {
   outline: 2px solid #1b5e4c;
@@ -731,4 +737,78 @@
   .datentabelle {
     min-width: 38rem;
   }
+}
+
+.textanfrage {
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px dashed #bdcec2;
+  background: #f6f9f7;
+}
+
+.textanfrage h3 {
+  margin: 0;
+  color: #183d32;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.textanfrage-hinweis {
+  margin: 0.3rem 0 0.8rem;
+  color: #718078;
+  font-size: 0.8rem;
+}
+
+.textanfrage .formularaktionen {
+  margin-top: 0.7rem;
+}
+
+.entwurfsvorschau {
+  margin-top: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border-left: 3px solid #5f8a76;
+  background: #fff;
+  color: #30493c;
+  font-size: 0.86rem;
+}
+
+.entwurfsfelder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.6rem 1rem;
+  margin: 0.7rem 0 0;
+}
+
+.entwurfsfelder dt {
+  color: #718078;
+  font-size: 0.75rem;
+}
+
+.entwurfsfelder dd {
+  margin: 0.1rem 0 0;
+  color: #183d32;
+  font-weight: 600;
+}
+
+.entwurfsfelder dd.entwurfswert-leer {
+  color: #9a6b2f;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.entwurfsliste {
+  margin-top: 0.7rem;
+}
+
+.entwurfsliste ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.entwurfsliste-fehlend {
+  color: #7a5a26;
+}
+
+.entwurfsliste-unsicher {
+  color: #863c2c;
 }

@@ -4,10 +4,12 @@ import type {
   BuchungAendernAnfrage,
   Buchung,
   BuchungAnlegenAnfrage,
+  BuchungsEntwurf,
   Medizingeraet,
   MedizingeraetSchreibAnfrage,
   Raum,
   RaumSchreibAnfrage,
+  TexteingabeInterpretierenAnfrage,
   VerfuegbarkeitsErgebnis,
   VerfuegbarkeitPruefenAnfrage,
 } from '../types/api'
@@ -139,4 +141,7 @@ export async function loescheBuchung(id: number): Promise<void> {
 
 export function sucheAlternativen(anfrage: AlternativenAnfrage): Promise<AlternativenErgebnis> {
   return sendeDaten<AlternativenAnfrage, AlternativenErgebnis>('/buchungen/alternativen', anfrage)
+}
+export function interpretiereBuchungstext(anfrage: TexteingabeInterpretierenAnfrage): Promise<BuchungsEntwurf> {
+  return sendeDaten<TexteingabeInterpretierenAnfrage, BuchungsEntwurf>('/buchungsentwuerfe/interpretieren', anfrage)
 }

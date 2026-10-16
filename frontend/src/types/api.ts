@@ -82,3 +82,23 @@ export type AlternativenErgebnis = {
   fehler: string[]
   hinweis: string | null
 }
+export type TexteingabeInterpretierenAnfrage = {
+  text: string
+}
+
+export type BuchungsEntwurfRessource = {
+  id: number
+  name: string
+}
+
+export type BuchungsEntwurf = {
+  titelOderZweck: string | null
+  datum: string | null
+  beginn: string | null
+  ende: string | null
+  dauerMinuten: number | null
+  raum: BuchungsEntwurfRessource | null
+  medizingeraete: BuchungsEntwurfRessource[]
+  fehlendeAngaben: string[]
+  unsichereAngaben: string[]
+}
