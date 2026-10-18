@@ -98,8 +98,8 @@ namespace MediPlanVoice.Infrastructure.Datenzugriff.Migrationen
                             Id = 1,
                             Aktiv = true,
                             Geraetetyp = "Bildgebung",
-                            Name = "Ultraschallgeraet",
-                            Standort = "Hauptgebaeude"
+                            Name = "Ultraschallgerät",
+                            Standort = "Hauptgebäude"
                         },
                         new
                         {
@@ -107,15 +107,111 @@ namespace MediPlanVoice.Infrastructure.Datenzugriff.Migrationen
                             Aktiv = true,
                             Geraetetyp = "Diagnostik",
                             Name = "EKG",
-                            Standort = "Hauptgebaeude"
+                            Standort = "Hauptgebäude"
                         },
                         new
                         {
                             Id = 3,
                             Aktiv = true,
-                            Geraetetyp = "Ueberwachung",
+                            Geraetetyp = "Überwachung",
                             Name = "Patientenmonitor",
-                            Standort = "Nebengebaeude"
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Aktiv = true,
+                            Geraetetyp = "Notfallmedizin",
+                            Name = "Defibrillator",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Aktiv = true,
+                            Geraetetyp = "Infusion",
+                            Name = "Infusionspumpe",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Aktiv = true,
+                            Geraetetyp = "Infusion",
+                            Name = "Spritzenpumpe",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Aktiv = true,
+                            Geraetetyp = "Überwachung",
+                            Name = "Pulsoximeter",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Aktiv = true,
+                            Geraetetyp = "Überwachung",
+                            Name = "Blutdruckmonitor",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Aktiv = true,
+                            Geraetetyp = "Beatmung",
+                            Name = "Beatmungsgerät",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Aktiv = true,
+                            Geraetetyp = "Notfallmedizin",
+                            Name = "Absauggerät",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Aktiv = true,
+                            Geraetetyp = "Messgerät",
+                            Name = "Blutzuckermessgerät",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Aktiv = true,
+                            Geraetetyp = "Diagnostik",
+                            Name = "Spirometer",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Aktiv = true,
+                            Geraetetyp = "Bildgebung",
+                            Name = "Mobiles Röntgengerät",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Aktiv = true,
+                            Geraetetyp = "Diagnostik",
+                            Name = "Dopplergerät",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Aktiv = true,
+                            Geraetetyp = "Diagnostik",
+                            Name = "EEG-Gerät",
+                            Standort = "Hauptgebäude"
                         });
                 });
 
@@ -157,23 +253,199 @@ namespace MediPlanVoice.Infrastructure.Datenzugriff.Migrationen
                             Aktiv = true,
                             Kapazitaet = 2,
                             Name = "Behandlungsraum 1",
-                            Standort = "Hauptgebaeude"
+                            Standort = "Hauptgebäude"
                         },
                         new
                         {
                             Id = 2,
                             Aktiv = true,
                             Kapazitaet = 3,
-                            Name = "Untersuchungsraum",
-                            Standort = "Hauptgebaeude"
+                            Name = "Untersuchungsraum 1",
+                            Standort = "Hauptgebäude"
                         },
                         new
                         {
                             Id = 3,
                             Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Notfallraum 1",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Behandlungsraum 2",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Behandlungsraum 3",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Untersuchungsraum 2",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Untersuchungsraum 3",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Ultraschallraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "EKG-Raum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Notfallraum 2",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Verbandsraum",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Injektionsraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Aktiv = true,
+                            Kapazitaet = 4,
+                            Name = "Infusionsraum",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Laborraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Blutentnahmeraum 1",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Blutentnahmeraum 2",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Diagnostikraum 1",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Diagnostikraum 2",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Aktiv = true,
+                            Kapazitaet = 2,
+                            Name = "Vorbereitungsraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Nachsorgeraum",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Aktiv = true,
                             Kapazitaet = 1,
-                            Name = "Notfallraum",
-                            Standort = "Nebengebaeude"
+                            Name = "Isolationsraum",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Aktiv = true,
+                            Kapazitaet = 4,
+                            Name = "Aufwachraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Aktiv = true,
+                            Kapazitaet = 3,
+                            Name = "Funktionsraum",
+                            Standort = "Hauptgebäude"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Aktiv = true,
+                            Kapazitaet = 6,
+                            Name = "Besprechungsraum",
+                            Standort = "Nebengebäude"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Aktiv = true,
+                            Kapazitaet = 6,
+                            Name = "Mehrzweckraum",
+                            Standort = "Nebengebäude"
                         });
                 });
 

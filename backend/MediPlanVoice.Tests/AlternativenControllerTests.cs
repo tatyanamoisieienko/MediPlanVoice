@@ -66,8 +66,10 @@ public sealed class AlternativenControllerTests
 
         var ergebnis = await SucheAsync(test.Client, RaumAnfrage(1));
 
-        Assert.Equal(2, ergebnis.Vorschlaege[0].Id);
-        Assert.Equal("Hauptgebaeude", ergebnis.Vorschlaege[0].Standort);
+        var standorte = ergebnis.Vorschlaege.Select(vorschlag => vorschlag.Standort).ToList();
+        Assert.Equal("Hauptgebäude", standorte[0]);
+        Assert.Contains("Nebengebäude", standorte);
+        Assert.True(standorte.LastIndexOf("Hauptgebäude") < standorte.IndexOf("Nebengebäude"));
     }
 
     [Fact]
@@ -120,8 +122,8 @@ public sealed class AlternativenControllerTests
     public async Task BevorzugtGeraetAmGleichenStandort()
     {
         await using var test = await ErstelleTestkontextAsync();
-        await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet Aussen", "Bildgebung", "Nebengebaeude");
-        var gleichesHaus = await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet Haupt", "Bildgebung", "Hauptgebaeude");
+        await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet Aussen", "Bildgebung", "Nebengebäude");
+        var gleichesHaus = await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet Haupt", "Bildgebung", "Hauptgebäude");
 
         var ergebnis = await SucheAsync(test.Client, GeraeteAnfrage(1));
 
@@ -132,7 +134,7 @@ public sealed class AlternativenControllerTests
     public async Task BegruendungEntsprichtStandortTypUndVerfuegbarkeit()
     {
         await using var test = await ErstelleTestkontextAsync();
-        var ersatz = await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet 2", "Bildgebung", "Hauptgebaeude");
+        var ersatz = await LegeGeraetAnAsync(test.Client, "Ultraschallgeraet 2", "Bildgebung", "Hauptgebäude");
 
         var ergebnis = await SucheAsync(test.Client, GeraeteAnfrage(1));
 
@@ -147,7 +149,8 @@ public sealed class AlternativenControllerTests
     {
         await using var test = await ErstelleTestkontextAsync();
 
-        var ergebnis = await SucheAsync(test.Client, GeraeteAnfrage(1));
+        // Das Beatmungsgerät ist das einzige Seed-Gerät vom Typ „Beatmung“.
+        var ergebnis = await SucheAsync(test.Client, GeraeteAnfrage(9));
 
         Assert.True(ergebnis.AnfrageGueltig);
         Assert.False(ergebnis.AlternativenGefunden);

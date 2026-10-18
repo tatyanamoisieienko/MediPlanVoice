@@ -18,7 +18,8 @@ public sealed class RessourcenControllerTests
 
         var startraeume = await client.GetFromJsonAsync<List<RaumZurueckgebenVertrag>>("/api/raeume");
         Assert.NotNull(startraeume);
-        Assert.Equal(3, startraeume.Count);
+        Assert.Equal(25, startraeume.Count);
+        Assert.All(startraeume, raum => Assert.True(raum.Aktiv));
 
         var anlegen = await client.PostAsJsonAsync("/api/raeume", new RaumAnlegenVertrag { Name = "Raum Alpha", Standort = "Hauptgebaeude", Kapazitaet = 2 });
         Assert.Equal(HttpStatusCode.Created, anlegen.StatusCode);
@@ -48,7 +49,8 @@ public sealed class RessourcenControllerTests
 
         var startgeraete = await client.GetFromJsonAsync<List<MedizingeraetZurueckgebenVertrag>>("/api/medizingeraete");
         Assert.NotNull(startgeraete);
-        Assert.Equal(3, startgeraete.Count);
+        Assert.Equal(15, startgeraete.Count);
+        Assert.All(startgeraete, geraet => Assert.True(geraet.Aktiv));
 
         var anlegen = await client.PostAsJsonAsync("/api/medizingeraete", new MedizingeraetAnlegenVertrag
         {

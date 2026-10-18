@@ -83,7 +83,7 @@ public sealed class BuchungsControllerTests
         var konflikt = Assert.Single(ergebnis.Konflikte);
         Assert.Equal("Medizingeraet", konflikt.RessourceTyp);
         Assert.Equal(1, konflikt.RessourceId);
-        Assert.Equal("Ultraschallgeraet", konflikt.RessourcenName);
+        Assert.Equal("Ultraschallgerät", konflikt.RessourcenName);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class BuchungsControllerTests
         });
         await test.Client.PutAsJsonAsync("/api/medizingeraete/1", new MedizingeraetAendernVertrag
         {
-            Name = "Ultraschallgeraet",
+            Name = "Ultraschallgerät",
             Geraetetyp = "Bildgebung",
             Standort = "Hauptgebaeude",
             Aktiv = false
