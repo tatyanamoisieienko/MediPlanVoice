@@ -812,3 +812,47 @@
 .entwurfsliste-unsicher {
   color: #863c2c;
 }
+
+.textanfrage .formularaktionen {
+  align-items: center;
+}
+
+.aufnahmeanzeige {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto;
+  color: #a33a26;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.aufnahmeanzeige::before {
+  width: 0.6rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #c8432b;
+  content: '';
+  animation: aufnahme-puls 1.2s ease-in-out infinite;
+}
+
+.aufnahmehinweis {
+  margin-right: auto;
+  color: #456457;
+  font-size: 0.82rem;
+}
+
+.aufnahmeknopf-aktiv {
+  border-color: #b44e37;
+  color: #8f3522;
+}
+
+@keyframes aufnahme-puls {
+  50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aufnahmeanzeige::before {
+    animation: none;
+  }
+}

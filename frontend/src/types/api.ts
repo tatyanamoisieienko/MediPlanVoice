@@ -102,3 +102,7 @@ export type BuchungsEntwurf = {
   fehlendeAngaben: string[]
   unsichereAngaben: string[]
 }
+
+export type TranskriptionErgebnis = {
+  text: string
+}

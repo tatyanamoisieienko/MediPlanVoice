@@ -14,6 +14,8 @@ builder.Services.AddScoped<VerfuegbarkeitsService>();
 builder.Services.AddScoped<AlternativenService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBuchungsInterpretationsService, BuchungsInterpretationsService>();
+builder.Services.Configure<SpracherkennungsOptionen>(builder.Configuration.GetSection(SpracherkennungsOptionen.Abschnitt));
+builder.Services.AddHttpClient<ISpracherkennungsService, SpracherkennungsService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

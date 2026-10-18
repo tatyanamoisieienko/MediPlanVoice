@@ -10,6 +10,7 @@ import type {
   Raum,
   RaumSchreibAnfrage,
   TexteingabeInterpretierenAnfrage,
+  TranskriptionErgebnis,
   VerfuegbarkeitsErgebnis,
   VerfuegbarkeitPruefenAnfrage,
 } from '../types/api'
@@ -144,4 +145,30 @@ export function sucheAlternativen(anfrage: AlternativenAnfrage): Promise<Alterna
 }
 export function interpretiereBuchungstext(anfrage: TexteingabeInterpretierenAnfrage): Promise<BuchungsEntwurf> {
   return sendeDaten<TexteingabeInterpretierenAnfrage, BuchungsEntwurf>('/buchungsentwuerfe/interpretieren', anfrage)
+}
+
+const dateiendungNachAudioformat: Record<string, string> = {
+  'audio/webm': 'webm',
+  'audio/ogg': 'ogg',
+  'audio/mp4': 'm4a',
+  'audio/wav': 'wav',
+}
+
+export async function transkribiereAudio(audio: Blob): Promise<TranskriptionErgebnis> {
+  const format = audio.type.split(';')[0]
+  const formular = new FormData()
+  formular.append('audio', audio, `aufnahme.${dateiendungNachAudioformat[format] ?? 'webm'}`)
+
+  const antwort = await fetch(`${apiBasisadresse}/sprache/transkribieren`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    body: formular,
+  })
+
+  const daten: unknown = await antwort.json().catch(() => null)
+  if (!antwort.ok) {
+    throw new ApiFehler(antwort.status, daten)
+  }
+
+  return daten as TranskriptionErgebnis
 }

@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { interpretiereBuchungstext } from '../../api/client'
+import { ApiFehler, interpretiereBuchungstext, transkribiereAudio } from '../../api/client'
 import type { BuchungsEntwurf } from '../../types/api'
+import { maximaleAufnahmedauerSekunden, useSprachaufnahme } from './useSprachaufnahme'
 
 type Props = {
   beimUebernehmen: (entwurf: BuchungsEntwurf) => void
@@ -18,14 +19,41 @@ export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Pr
   const [status, setStatus] = useState<'bereit' | 'laedt'>('bereit')
   const [entwurf, setEntwurf] = useState<BuchungsEntwurf | null>(null)
   const [fehler, setFehler] = useState('')
+  const [transkribiert, setTranskribiert] = useState(false)
+  const [sprachhinweis, setSprachhinweis] = useState('')
   const anfrageVersion = useRef(0)
+  const aufnahme = useSprachaufnahme(verarbeiteAufnahme)
+  const sprachbereichBeschaeftigt = aufnahme.status !== 'bereit' || transkribiert
 
   function aendereText(neuerText: string) {
     setText(neuerText)
     // Eine Vorschau gilt nur für den Text, aus dem sie interpretiert wurde.
     setEntwurf(null)
     setFehler('')
+    setSprachhinweis('')
+    setStatus('bereit')
     anfrageVersion.current += 1
+  }
+
+  async function starteAufnahme() {
+    setFehler('')
+    setSprachhinweis('')
+    await aufnahme.starte()
+  }
+
+  // Setzt nur den erkannten Text ein. Interpretation, Übernahme und Prüfung bleiben bewusste Benutzeraktionen.
+  async function verarbeiteAufnahme(audio: Blob) {
+    setTranskribiert(true)
+    setFehler('')
+    try {
+      const { text: erkannterText } = await transkribiereAudio(audio)
+      aendereText(erkannterText.slice(0, maximaleTextlaenge))
+      setSprachhinweis('Erkannter Text wurde eingefügt. Bitte prüfen, bei Bedarf korrigieren und dann „Text interpretieren“ wählen.')
+    } catch (fehlerBeimTranskribieren) {
+      setFehler(transkriptionsFehlermeldung(fehlerBeimTranskribieren))
+    } finally {
+      setTranskribiert(false)
+    }
   }
 
   async function interpretiere(event: FormEvent<HTMLFormElement>) {
@@ -58,7 +86,7 @@ export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Pr
     <section className="textanfrage" aria-labelledby="textanfrage-titel">
       <h3 id="textanfrage-titel">Buchungsanfrage als Text</h3>
       <p className="textanfrage-hinweis">
-        Der Text wird nur interpretiert, nicht gebucht. Erkannte Werte können anschließend bewusst in das Buchungsformular übernommen werden.
+        Anfrage eintippen oder aufnehmen. Eine Aufnahme wird nur in Text umgewandelt. Der Text wird nur interpretiert, nicht gebucht. Erkannte Werte können anschließend bewusst in das Buchungsformular übernommen werden.
       </p>
 
       <form onSubmit={interpretiere} noValidate>
@@ -68,18 +96,42 @@ export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Pr
             rows={2}
             maxLength={maximaleTextlaenge}
             value={text}
+            readOnly={sprachbereichBeschaeftigt}
             onChange={(event) => aendereText(event.target.value)}
             placeholder="z. B. Buche morgen von 10 bis 11 Uhr den Untersuchungsraum mit Ultraschall zur Routinekontrolle."
           />
         </label>
         <div className="formularaktionen">
-          <button className="sekundaerknopf" type="submit" disabled={status === 'laedt'}>
+          {aufnahme.status === 'nimmtAuf' && (
+            <span className="aufnahmeanzeige" role="status">
+              Aufnahme läuft · {formatiereDauer(aufnahme.dauer)} / {formatiereDauer(maximaleAufnahmedauerSekunden)}
+            </span>
+          )}
+          {transkribiert && <span className="aufnahmehinweis" role="status">Sprache wird erkannt …</span>}
+          {aufnahme.status === 'nimmtAuf' ? (
+            <button className="sekundaerknopf aufnahmeknopf-aktiv" type="button" onClick={aufnahme.stoppe}>
+              Aufnahme stoppen
+            </button>
+          ) : (
+            <button
+              className="sekundaerknopf"
+              type="button"
+              disabled={aufnahme.status === 'startet' || transkribiert || status === 'laedt' || deaktiviert}
+              onClick={() => void starteAufnahme()}
+            >
+              {aufnahme.status === 'startet' ? 'Mikrofon wird gestartet …' : 'Aufnahme starten'}
+            </button>
+          )}
+          <button className="sekundaerknopf" type="submit" disabled={status === 'laedt' || sprachbereichBeschaeftigt}>
             {status === 'laedt' ? 'Interpretiert …' : 'Text interpretieren'}
           </button>
         </div>
       </form>
 
-      {fehler && <p className="formularmeldung formularmeldung-fehler" role="alert">{fehler}</p>}
+      {sprachhinweis && <p className="alternativen-hinweis" role="status">{sprachhinweis}</p>}
+      {(fehler || aufnahme.fehler) && (
+        <p className="formularmeldung formularmeldung-fehler" role="alert">{fehler || aufnahme.fehler}</p>
+      )}
 
       {entwurf && (
         <div className="entwurfsvorschau" role="status" aria-label="Vorschau der interpretierten Anfrage">
@@ -140,6 +192,22 @@ function Entwurfsfeld({ bezeichnung, wert, leertext = 'Nicht erkannt' }: {
       <dd className={wert ? undefined : 'entwurfswert-leer'}>{wert || leertext}</dd>
     </div>
   )
+}
+
+function transkriptionsFehlermeldung(fehler: unknown): string {
+  if (fehler instanceof ApiFehler) {
+    const detail = typeof fehler.daten === 'object' && fehler.daten !== null && 'detail' in fehler.daten
+      ? fehler.daten.detail
+      : null
+    if (typeof detail === 'string' && detail) return detail
+    if (fehler.status === 503) return 'Die Spracherkennung ist zurzeit nicht verfügbar. Bitte tippe die Anfrage ein oder versuche es später erneut.'
+    return 'Die Sprachaufnahme konnte nicht in Text umgewandelt werden.'
+  }
+  return 'Der Server ist nicht erreichbar. Die Sprachaufnahme konnte nicht verarbeitet werden.'
+}
+
+function formatiereDauer(sekunden: number): string {
+  return `${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`
 }
 
 function formatiereDatum(datum: string): string {
