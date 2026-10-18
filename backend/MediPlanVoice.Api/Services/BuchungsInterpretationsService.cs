@@ -11,12 +11,15 @@ public sealed class BuchungsInterpretationsService(
     MediPlanDatenbankkontext datenbank,
     TimeProvider zeitProvider) : IBuchungsInterpretationsService
 {
+    // Eine Uhrzeit ist numerisch („12“, „10:30“) oder eine ausgeschriebene volle Stunde („zwölf“).
+    private static readonly string UhrzeitMuster = $@"(?:\d{{1,2}}(?::\d{{2}})?|{AusgeschriebeneStunden.Muster})";
+
     private static readonly Regex ZeitspanneMuster = new(
-        @"(?:\bvon\s*)?(?<beginn>\d{1,2}(?::\d{2})?)\s*(?:uhr)?\s*(?:bis|[-–])\s*(?<ende>\d{1,2}(?::\d{2})?)\s*(?:uhr)?\b",
+        $@"(?:\bvon\s*)?(?<beginn>{UhrzeitMuster})\s*(?:uhr)?\s*(?:bis|[-–])\s*(?<ende>{UhrzeitMuster})\s*(?:uhr)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex BeginnMuster = new(
-        @"\b(?:um|von)\s+(?<beginn>\d{1,2}(?::\d{2})?)\s*uhr\b",
+        $@"\b(?:um|von)\s+(?<beginn>{UhrzeitMuster})\s*uhr\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex DauerMuster = new(
@@ -34,6 +37,17 @@ public sealed class BuchungsInterpretationsService(
     private static readonly Regex IsoDatumMuster = new(
         @"\b(?<jahr>\d{4})-(?<monat>\d{2})-(?<tag>\d{2})\b",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // „25. Oktober 2026“, „25. Oktober“, „25.Oktober“
+    private static readonly Regex MonatsnameDatumMuster = new(
+        $@"\b(?<tag>\d{{1,2}})(?:\.\s*|\s+)(?<monat>{string.Join("|", Datumsangaben.MonatNachName.Keys)})(?:\s+(?<jahr>\d{{4}}))?\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // „in 2 Tagen“, „in einer Woche“, „in drei Monaten“; die Anzahl darf aus bis zu zwei Wörtern bestehen,
+    // damit auch nicht unterstützte Angaben wie „in ein paar Tagen“ erkannt und als unsicher gemeldet werden.
+    private static readonly Regex RelativesDatumMuster = new(
+        @"\bin\s+(?<anzahl>[\p{L}\d]+(?:\s+\p{L}+)??)\s+(?<einheit>tag(?:e|en)?|woche(?:n)?|monat(?:e|en)?)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex RaumErwaehnungMuster = new(
         @"\b(?:raum|zimmer)\s+(?<name>[\p{L}\p{N}][\p{L}\p{N} -]*)",
@@ -139,51 +153,97 @@ public sealed class BuchungsInterpretationsService(
 
     private DateOnly? ErmittleDatum(string text, ICollection<string> unsichereAngaben)
     {
-        var datumMuster = DeutschesDatumMuster.Match(text);
-        var isoMuster = IsoDatumMuster.Match(text);
-        var relativeHeute = Regex.IsMatch(text, @"\bheute\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        var relativeMorgen = Regex.IsMatch(text, @"\bmorgen\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        var erkannteDatumsangaben = (datumMuster.Success ? 1 : 0) + (isoMuster.Success ? 1 : 0) + (relativeHeute ? 1 : 0) + (relativeMorgen ? 1 : 0);
+        var heute = DateOnly.FromDateTime(zeitProvider.GetLocalNow().DateTime);
+        var kandidaten = new List<Datumskandidat>();
 
-        if (erkannteDatumsangaben > 1)
+        if (Regex.IsMatch(text, @"\bheute\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            kandidaten.Add(new(heute, null));
+        }
+
+        if (Regex.IsMatch(text, @"\bmorgen\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            kandidaten.Add(new(heute.AddDays(1), null));
+        }
+
+        if (Regex.IsMatch(text, @"\b(?:übermorgen|uebermorgen)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            kandidaten.Add(new(heute.AddDays(2), null));
+        }
+
+        foreach (Match relativ in RelativesDatumMuster.Matches(text))
+        {
+            kandidaten.Add(Datumsangaben.TryHoleAnzahl(relativ.Groups["anzahl"].Value, out var anzahl)
+                ? new(Datumsangaben.Verschiebe(heute, anzahl, relativ.Groups["einheit"].Value), null)
+                : new(null, $"Die relative Datumsangabe „{relativ.Value}“ wird nicht unterstützt; das Datum wurde nicht zugeordnet."));
+        }
+
+        foreach (Match deutsch in DeutschesDatumMuster.Matches(text))
+        {
+            kandidaten.Add(DateOnly.TryParseExact(
+                    deutsch.Value,
+                    ["d.M.yyyy", "dd.MM.yyyy"],
+                    CultureInfo.GetCultureInfo("de-DE"),
+                    DateTimeStyles.None,
+                    out var deutschesDatum)
+                ? new(deutschesDatum, null)
+                : Ungueltig(deutsch.Value));
+        }
+
+        foreach (Match iso in IsoDatumMuster.Matches(text))
+        {
+            kandidaten.Add(DateOnly.TryParseExact(
+                    iso.Value,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var isoDatum)
+                ? new(isoDatum, null)
+                : Ungueltig(iso.Value));
+        }
+
+        foreach (Match monatsname in MonatsnameDatumMuster.Matches(text))
+        {
+            var tag = int.Parse(monatsname.Groups["tag"].Value, CultureInfo.InvariantCulture);
+            var monat = Datumsangaben.MonatNachName[monatsname.Groups["monat"].Value];
+            var jahr = monatsname.Groups["jahr"].Success
+                ? int.Parse(monatsname.Groups["jahr"].Value, CultureInfo.InvariantCulture)
+                : Datumsangaben.NaechstesJahrFuer(heute, monat, tag);
+            kandidaten.Add(Datumsangaben.TryErstelle(jahr, monat, tag, out var datum)
+                ? new(datum, null)
+                : Ungueltig(monatsname.Value));
+        }
+
+        if (kandidaten.Count > 1)
         {
             unsichereAngaben.Add("Mehrere Datumsangaben erkannt; das Datum wurde nicht zugeordnet.");
             return null;
         }
 
-        if (relativeHeute || relativeMorgen)
+        if (kandidaten.Count == 1)
         {
-            var heute = DateOnly.FromDateTime(zeitProvider.GetLocalNow().DateTime);
-            return relativeMorgen ? heute.AddDays(1) : heute;
+            var kandidat = kandidaten[0];
+            if (kandidat.Problem is not null)
+            {
+                unsichereAngaben.Add(kandidat.Problem);
+            }
+
+            return kandidat.Datum;
         }
 
-        if (datumMuster.Success && DateOnly.TryParseExact(
-                datumMuster.Value,
-                "dd.MM.yyyy",
-                CultureInfo.GetCultureInfo("de-DE"),
-                DateTimeStyles.None,
-                out var deutschesDatum))
-        {
-            return deutschesDatum;
-        }
-
-        if (isoMuster.Success && DateOnly.TryParseExact(
-                isoMuster.Value,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var isoDatum))
-        {
-            return isoDatum;
-        }
-
-        if (Regex.IsMatch(text, @"\b(?:übermorgen|uebermorgen|nächsten|naechsten|kommenden)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(text, @"\b(?:nächsten|naechsten|kommenden)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             unsichereAngaben.Add("Die relative Datumsangabe wird nicht unterstützt.");
         }
 
         return null;
+
+        static Datumskandidat Ungueltig(string wert) =>
+            new(null, $"Das Datum „{wert}“ ist ungültig; das Datum wurde nicht zugeordnet.");
     }
+
+    /// <summary>Eine erkannte Datumsangabe: entweder ein gültiges Datum oder der Grund, warum keines übernommen wird.</summary>
+    private readonly record struct Datumskandidat(DateOnly? Datum, string? Problem);
 
     private static (TimeOnly? Beginn, TimeOnly? Ende, int? DauerMinuten) ErmittleZeit(
         string text,
@@ -251,10 +311,18 @@ public sealed class BuchungsInterpretationsService(
         var name = Normalisiere(geraetename);
         if (EnthaeltBegriff(text, name)) return true;
 
-        const string geraeteSuffix = "geraet";
-        return name.EndsWith(geraeteSuffix, StringComparison.Ordinal) &&
-               name.Length > geraeteSuffix.Length &&
-               EnthaeltBegriff(text, name[..^geraeteSuffix.Length]);
+        // „gerät“ wird durch Normalisiere zu „gerat“, „geraet“ bleibt erhalten.
+        foreach (var geraeteSuffix in new[] { "geraet", "gerat" })
+        {
+            if (name.EndsWith(geraeteSuffix, StringComparison.Ordinal) &&
+                name.Length > geraeteSuffix.Length &&
+                EnthaeltBegriff(text, name[..^geraeteSuffix.Length]))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool EnthaeltBegriff(string text, string begriff)
@@ -277,6 +345,12 @@ public sealed class BuchungsInterpretationsService(
 
     private static bool TryParseZeit(string text, out TimeOnly zeit)
     {
+        if (AusgeschriebeneStunden.TryHoleStunde(text, out var ausgeschriebeneStunde))
+        {
+            zeit = new TimeOnly(ausgeschriebeneStunde, 0);
+            return true;
+        }
+
         if (!text.Contains(':'))
         {
             if (int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var stunde) && stunde is >= 0 and <= 23)
@@ -295,5 +369,120 @@ public sealed class BuchungsInterpretationsService(
             CultureInfo.InvariantCulture,
             DateTimeStyles.None,
             out zeit);
+    }
+
+    /// <summary>Hilfslogik für Monatsnamen, relative Datumsangaben und Datumsangaben ohne Jahr.</summary>
+    private static class Datumsangaben
+    {
+        public static readonly Dictionary<string, int> MonatNachName = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["januar"] = 1,
+            ["jänner"] = 1,
+            ["februar"] = 2,
+            ["märz"] = 3,
+            ["maerz"] = 3,
+            ["april"] = 4,
+            ["mai"] = 5,
+            ["juni"] = 6,
+            ["juli"] = 7,
+            ["august"] = 8,
+            ["september"] = 9,
+            ["oktober"] = 10,
+            ["november"] = 11,
+            ["dezember"] = 12,
+        };
+
+        private static readonly Dictionary<string, int> AnzahlNachWort = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ein"] = 1,
+            ["eine"] = 1,
+            ["einem"] = 1,
+            ["einer"] = 1,
+            ["eins"] = 1,
+            ["zwei"] = 2,
+            ["drei"] = 3,
+            ["vier"] = 4,
+            ["fünf"] = 5,
+            ["fuenf"] = 5,
+            ["sechs"] = 6,
+            ["sieben"] = 7,
+            ["acht"] = 8,
+            ["neun"] = 9,
+            ["zehn"] = 10,
+            ["elf"] = 11,
+            ["zwölf"] = 12,
+            ["zwoelf"] = 12,
+        };
+
+        /// <summary>Liest „2“ oder „zwei“; alles andere (z. B. „ein paar“) gilt als nicht unterstützt.</summary>
+        public static bool TryHoleAnzahl(string wert, out int anzahl)
+        {
+            if (int.TryParse(wert, NumberStyles.None, CultureInfo.InvariantCulture, out anzahl))
+            {
+                return anzahl > 0;
+            }
+
+            return AnzahlNachWort.TryGetValue(wert, out anzahl);
+        }
+
+        public static DateOnly Verschiebe(DateOnly heute, int anzahl, string einheit) =>
+            einheit.StartsWith("tag", StringComparison.OrdinalIgnoreCase) ? heute.AddDays(anzahl)
+            : einheit.StartsWith("woche", StringComparison.OrdinalIgnoreCase) ? heute.AddDays(anzahl * 7)
+            : heute.AddMonths(anzahl);
+
+        /// <summary>Ohne Jahr: aktuelles Jahr, solange der Tag noch bevorsteht (heute eingeschlossen), sonst das nächste Jahr.</summary>
+        public static int NaechstesJahrFuer(DateOnly heute, int monat, int tag) =>
+            (monat, tag).CompareTo((heute.Month, heute.Day)) >= 0 ? heute.Year : heute.Year + 1;
+
+        public static bool TryErstelle(int jahr, int monat, int tag, out DateOnly datum)
+        {
+            var gueltig = jahr is >= 1 and <= 9999 && monat is >= 1 and <= 12 && tag >= 1 && tag <= DateTime.DaysInMonth(jahr, monat);
+            datum = gueltig ? new DateOnly(jahr, monat, tag) : default;
+            return gueltig;
+        }
+    }
+
+    /// <summary>
+    /// Ausgeschriebene volle Stunden von „null“ bis „dreiundzwanzig“, z. B. aus der Spracherkennung.
+    /// Umgangssprachliche Angaben wie „halb zehn“ oder „Viertel nach zehn“ werden bewusst nicht unterstützt.
+    /// </summary>
+    private static class AusgeschriebeneStunden
+    {
+        private static readonly Dictionary<string, int> StundeNachWort = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["null"] = 0,
+            ["ein"] = 1,
+            ["eins"] = 1,
+            ["zwei"] = 2,
+            ["drei"] = 3,
+            ["vier"] = 4,
+            ["fünf"] = 5,
+            ["fuenf"] = 5,
+            ["sechs"] = 6,
+            ["sieben"] = 7,
+            ["acht"] = 8,
+            ["neun"] = 9,
+            ["zehn"] = 10,
+            ["elf"] = 11,
+            ["zwölf"] = 12,
+            ["zwoelf"] = 12,
+            ["dreizehn"] = 13,
+            ["vierzehn"] = 14,
+            ["fünfzehn"] = 15,
+            ["fuenfzehn"] = 15,
+            ["sechzehn"] = 16,
+            ["siebzehn"] = 17,
+            ["achtzehn"] = 18,
+            ["neunzehn"] = 19,
+            ["zwanzig"] = 20,
+            ["einundzwanzig"] = 21,
+            ["zweiundzwanzig"] = 22,
+            ["dreiundzwanzig"] = 23,
+        };
+
+        /// <summary>Regex-Alternative aller Stundenwörter, längste zuerst („dreizehn“ vor „drei“).</summary>
+        public static readonly string Muster = $@"\b(?:{string.Join("|", StundeNachWort.Keys.OrderByDescending(wort => wort.Length).Select(Regex.Escape))})\b";
+
+        public static bool TryHoleStunde(string wort, out int stunde) => StundeNachWort.TryGetValue(wort.Trim(), out stunde);
     }
 }

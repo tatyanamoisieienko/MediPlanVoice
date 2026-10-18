@@ -15,7 +15,7 @@ public sealed class BuchungsInterpretationControllerTests
         await using var test = await ErstelleTestkontextAsync();
 
         var entwurf = await InterpretiereAsync(test.Client,
-            "Buche morgen von 10 bis 11 Uhr den Untersuchungsraum mit Ultraschall zur Routinekontrolle");
+            "Buche morgen von 10 bis 11 Uhr den Untersuchungsraum 1 mit Ultraschall zur Routinekontrolle");
 
         Assert.Equal("Routinekontrolle", entwurf.TitelOderZweck);
         Assert.Equal(DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().DateTime).AddDays(1), entwurf.Datum);
@@ -95,10 +95,10 @@ public sealed class BuchungsInterpretationControllerTests
     {
         await using var test = await ErstelleTestkontextAsync();
 
-        var entwurf = await InterpretiereAsync(test.Client, "Untersuchungsraum mit Ultraschall");
+        var entwurf = await InterpretiereAsync(test.Client, "Untersuchungsraum 1 mit Ultraschall");
 
-        Assert.Equal(new BuchungsEntwurfRessourceVertrag(2, "Untersuchungsraum"), entwurf.Raum);
-        Assert.Contains(new BuchungsEntwurfRessourceVertrag(1, "Ultraschallgeraet"), entwurf.Medizingeraete);
+        Assert.Equal(new BuchungsEntwurfRessourceVertrag(2, "Untersuchungsraum 1"), entwurf.Raum);
+        Assert.Contains(new BuchungsEntwurfRessourceVertrag(1, "Ultraschallgerät"), entwurf.Medizingeraete);
     }
 
     [Fact]
@@ -156,6 +156,92 @@ public sealed class BuchungsInterpretationControllerTests
         Assert.Empty(entwurf.Medizingeraete);
         Assert.Contains("Datum", entwurf.FehlendeAngaben);
         Assert.Contains("Raum", entwurf.FehlendeAngaben);
+    }
+
+    [Theory]
+    [InlineData("Buche morgen von zwölf bis dreizehn Uhr den Raum für Ultraschall", 12, 13)]
+    [InlineData("Buche morgen von neun bis zehn Uhr den Untersuchungsraum zur Kontrolle", 9, 10)]
+    [InlineData("Buche morgen von acht bis elf Uhr den Untersuchungsraum zur Kontrolle", 8, 11)]
+    [InlineData("Buche morgen von Null bis Eins Uhr den Notfallraum zur Bereitschaft", 0, 1)]
+    [InlineData("Buche morgen von zweiundzwanzig bis dreiundzwanzig Uhr den Notfallraum zur Bereitschaft", 22, 23)]
+    public async Task AusgeschriebeneZeitspanneWirdErkannt(string text, int beginnStunde, int endeStunde)
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client, text);
+
+        Assert.Equal(new TimeOnly(beginnStunde, 0), entwurf.Beginn);
+        Assert.Equal(new TimeOnly(endeStunde, 0), entwurf.Ende);
+        Assert.Equal((endeStunde - beginnStunde) * 60, entwurf.DauerMinuten);
+        Assert.DoesNotContain("Beginn", entwurf.FehlendeAngaben);
+        Assert.DoesNotContain("Ende", entwurf.FehlendeAngaben);
+    }
+
+    [Fact]
+    public async Task AusgeschriebenerBeginnMitDauerErgibtEnde()
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client,
+            "Buche morgen um vierzehn Uhr für 30 Minuten den Untersuchungsraum");
+
+        Assert.Equal(new TimeOnly(14, 0), entwurf.Beginn);
+        Assert.Equal(new TimeOnly(14, 30), entwurf.Ende);
+        Assert.Equal(30, entwurf.DauerMinuten);
+        Assert.DoesNotContain("Beginn", entwurf.FehlendeAngaben);
+        Assert.DoesNotContain("Ende", entwurf.FehlendeAngaben);
+    }
+
+    [Fact]
+    public async Task AusgeschriebenerBeginnOhneDauerLaesstEndeOffen()
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client, "Buche morgen um vierzehn Uhr den Untersuchungsraum zur Kontrolle");
+
+        Assert.Equal(new TimeOnly(14, 0), entwurf.Beginn);
+        Assert.Null(entwurf.Ende);
+        Assert.Contains("Ende", entwurf.FehlendeAngaben);
+    }
+
+    [Theory]
+    [InlineData("Buche morgen von 12 bis 13 Uhr den Untersuchungsraum zur Kontrolle", 12, 0, 13, 0)]
+    [InlineData("Buche morgen von 10:30 bis 11:30 Uhr den Untersuchungsraum zur Kontrolle", 10, 30, 11, 30)]
+    public async Task NumerischeZeitspanneWirdWeiterhinErkannt(string text, int beginnStunde, int beginnMinute, int endeStunde, int endeMinute)
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client, text);
+
+        Assert.Equal(new TimeOnly(beginnStunde, beginnMinute), entwurf.Beginn);
+        Assert.Equal(new TimeOnly(endeStunde, endeMinute), entwurf.Ende);
+        Assert.Equal(60, entwurf.DauerMinuten);
+    }
+
+    [Fact]
+    public async Task UngueltigeAusgeschriebeneZeitspanneWirdNichtUebernommen()
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client, "Buche morgen von dreizehn bis zwölf Uhr den Untersuchungsraum zur Kontrolle");
+
+        Assert.Null(entwurf.Beginn);
+        Assert.Null(entwurf.Ende);
+        Assert.Null(entwurf.DauerMinuten);
+        Assert.Contains("Beginn", entwurf.FehlendeAngaben);
+        Assert.Contains("Ende", entwurf.FehlendeAngaben);
+        Assert.Contains(entwurf.UnsichereAngaben, angabe => angabe.Contains("ungültig", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task UmgangssprachlicheUhrzeitWirdNochNichtInterpretiert()
+    {
+        await using var test = await ErstelleTestkontextAsync();
+
+        var entwurf = await InterpretiereAsync(test.Client, "Buche morgen um halb zehn den Untersuchungsraum zur Kontrolle");
+
+        Assert.Null(entwurf.Beginn);
+        Assert.Contains("Beginn", entwurf.FehlendeAngaben);
     }
 
     private static async Task<BuchungsEntwurfZurueckgebenVertrag> InterpretiereAsync(HttpClient client, string text)
