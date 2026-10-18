@@ -118,6 +118,8 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
   const [speichert, setSpeichert] = useState(false)
   const [serverFehler, setServerFehler] = useState('')
   const [alternativen, setAlternativen] = useState<Record<string, AlternativenLadezustand>>({})
+  // Sichtbarkeit pro Konflikt, getrennt vom Lade-Cache: Schließen behält geladene Alternativen.
+  const [geoeffneteAlternativen, setGeoeffneteAlternativen] = useState<ReadonlySet<string>>(() => new Set())
   const [uebernahmeHinweis, setUebernahmeHinweis] = useState('')
   const alternativenAnfrageVersion = useRef(0)
 
@@ -130,8 +132,26 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
     setPruefergebnis(null)
     setServerFehler('')
     setAlternativen({})
+    setGeoeffneteAlternativen(new Set())
     setUebernahmeHinweis('')
     alternativenAnfrageVersion.current += 1
+  }
+
+  function schalteAlternativen(konflikt: Buchungskonflikt) {
+    const schluessel = konfliktSchluessel(konflikt)
+    const istGeoeffnet = geoeffneteAlternativen.has(schluessel)
+    setGeoeffneteAlternativen((aktuell) => {
+      const neu = new Set(aktuell)
+      if (istGeoeffnet) neu.delete(schluessel)
+      else neu.add(schluessel)
+      return neu
+    })
+
+    // Nur beim ersten Öffnen oder nach einem Ladefehler laden; sonst geladene Alternativen wiederverwenden.
+    const ladezustand = alternativen[schluessel]
+    if (!istGeoeffnet && (!ladezustand || ladezustand.status === 'fehler')) {
+      void ladeAlternativen(konflikt)
+    }
   }
 
   function uebernehmeEntwurf(entwurf: BuchungsEntwurf) {
@@ -370,7 +390,8 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
                     pruefergebnis.konflikte.map((konflikt) => [konfliktSchluessel(konflikt), konflikt]),
                   ).values()).map((konflikt) => {
                     const schluessel = konfliktSchluessel(konflikt)
-                    const ladezustand = alternativen[schluessel]
+                    const geoeffnet = geoeffneteAlternativen.has(schluessel)
+                    const ladezustand = geoeffnet ? alternativen[schluessel] : undefined
 
                     return (
                       <li className="buchungskonflikt" key={schluessel}>
@@ -379,8 +400,13 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
                             <strong>{konflikt.ressourceTyp}: {konflikt.ressourcenName}</strong>
                             {' · '}{konflikt.buchungstitel} ({formatiereZeitpunkt(konflikt.beginn)}–{formatiereZeitpunkt(konflikt.ende)})
                           </span>
-                          <button className="alternativen-knopf" type="button" onClick={() => void ladeAlternativen(konflikt)}>
-                            {ladezustand?.status === 'laedt' ? 'Lädt …' : 'Alternativen anzeigen'}
+                          <button
+                            className="alternativen-knopf"
+                            type="button"
+                            aria-expanded={geoeffnet}
+                            onClick={() => schalteAlternativen(konflikt)}
+                          >
+                            {geoeffnet ? 'Alternativen ausblenden' : 'Alternativen anzeigen'}
                           </button>
                         </div>
 
