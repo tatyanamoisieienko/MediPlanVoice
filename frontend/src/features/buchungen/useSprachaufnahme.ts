@@ -15,7 +15,7 @@ function mikrofonFehlermeldung(fehler: unknown): string {
   switch (name) {
     case 'NotAllowedError':
     case 'SecurityError':
-      return 'Der Zugriff auf das Mikrofon wurde verweigert. Bitte erlaube den Mikrofonzugriff im Browser und versuche es erneut.'
+      return 'Der Zugriff auf das Mikrofon wurde verweigert. Bitte erlauben Sie den Mikrofonzugriff im Browser und versuchen Sie es erneut.'
     case 'NotFoundError':
     case 'OverconstrainedError':
       return 'Es wurde kein Mikrofon gefunden.'
@@ -113,14 +113,14 @@ export function useSprachaufnahme(beimFertig: (audio: Blob) => void) {
       if (neueAufnahme.state !== 'inactive') neueAufnahme.stop()
       gibMikrofonFrei()
       setStatus('bereit')
-      setFehler('Bei der Aufnahme ist ein Fehler aufgetreten. Bitte versuche es erneut.')
+      setFehler('Bei der Aufnahme ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.')
     }
     neueAufnahme.onstop = () => {
       gibMikrofonFrei()
       setStatus('bereit')
       const audio = new Blob(teile, { type: neueAufnahme.mimeType || teile[0]?.type || 'audio/webm' })
       if (audio.size === 0) {
-        setFehler('Die Aufnahme enthält keine Audiodaten. Bitte versuche es erneut.')
+        setFehler('Die Aufnahme enthält keine Audiodaten. Bitte versuchen Sie es erneut.')
         return
       }
       beimFertigAktuell.current(audio)

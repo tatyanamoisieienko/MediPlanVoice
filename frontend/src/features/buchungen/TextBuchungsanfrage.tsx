@@ -1,4 +1,5 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { LoaderCircle, Mic, Sparkles, Square } from 'lucide-react'
 import { ApiFehler, interpretiereBuchungstext, transkribiereAudio } from '../../api/client'
 import type { BuchungsEntwurf } from '../../types/api'
 import { maximaleAufnahmedauerSekunden, useSprachaufnahme } from './useSprachaufnahme'
@@ -6,15 +7,19 @@ import { maximaleAufnahmedauerSekunden, useSprachaufnahme } from './useSprachauf
 type Props = {
   beimUebernehmen: (entwurf: BuchungsEntwurf) => void
   deaktiviert?: boolean
+  /** Meldet, ob im Anfragefeld Text steht (für die Rückfrage beim Verlassen). */
+  beimTextAendern?: (hatText: boolean) => void
 }
 
 const maximaleTextlaenge = 1000
+/** Ab dieser Höhe (in Pixeln) wächst das Anfragefeld nicht weiter, sondern scrollt. */
+const maximaleFeldhoehe = 400
 
 const angabenBezeichnungen: Record<string, string> = {
   Medizingeraet: 'Medizingerät',
 }
 
-export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Props) {
+export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false, beimTextAendern }: Props) {
   const [text, setText] = useState('')
   const [status, setStatus] = useState<'bereit' | 'laedt'>('bereit')
   const [entwurf, setEntwurf] = useState<BuchungsEntwurf | null>(null)
@@ -22,11 +27,35 @@ export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Pr
   const [transkribiert, setTranskribiert] = useState(false)
   const [sprachhinweis, setSprachhinweis] = useState('')
   const anfrageVersion = useRef(0)
+  const textfeld = useRef<HTMLTextAreaElement>(null)
+
+  // Passt die Höhe des Anfragefelds an den Inhalt an (Mindesthöhe per CSS, Obergrenze maximaleFeldhoehe).
+  const passeFeldhoeheAn = useCallback(() => {
+    const feld = textfeld.current
+    if (!feld) return
+    feld.style.height = 'auto'
+    const rahmen = feld.offsetHeight - feld.clientHeight
+    const benoetigt = feld.scrollHeight + rahmen
+    feld.style.height = `${Math.min(benoetigt, maximaleFeldhoehe)}px`
+    feld.style.overflowY = benoetigt > maximaleFeldhoehe ? 'auto' : 'hidden'
+  }, [])
+
+  // Bei jeder Textänderung – getippt, gelöscht oder per Spracheingabe eingefügt.
+  useLayoutEffect(() => {
+    passeFeldhoeheAn()
+  }, [text, passeFeldhoeheAn])
+
+  // Eine andere Breite ändert den Zeilenumbruch und damit die benötigte Höhe.
+  useEffect(() => {
+    window.addEventListener('resize', passeFeldhoeheAn)
+    return () => window.removeEventListener('resize', passeFeldhoeheAn)
+  }, [passeFeldhoeheAn])
   const aufnahme = useSprachaufnahme(verarbeiteAufnahme)
   const sprachbereichBeschaeftigt = aufnahme.status !== 'bereit' || transkribiert
 
   function aendereText(neuerText: string) {
     setText(neuerText)
+    beimTextAendern?.(neuerText.trim() !== '')
     // Eine Vorschau gilt nur für den Text, aus dem sie interpretiert wurde.
     setEntwurf(null)
     setFehler('')
@@ -84,48 +113,74 @@ export function TextBuchungsanfrage({ beimUebernehmen, deaktiviert = false }: Pr
 
   return (
     <section className="textanfrage" aria-labelledby="textanfrage-titel">
-      <h3 id="textanfrage-titel">Buchungsanfrage als Text</h3>
-      <p className="textanfrage-hinweis">
-        Anfrage eintippen oder aufnehmen. Eine Aufnahme wird nur in Text umgewandelt. Der Text wird nur interpretiert, nicht gebucht. Erkannte Werte können anschließend bewusst in das Buchungsformular übernommen werden.
-      </p>
+      <h3 id="textanfrage-titel">Buchungsanfrage</h3>
 
       <form onSubmit={interpretiere} noValidate>
-        <label className="formularfeld">
-          <span>Anfrage</span>
-          <textarea
-            rows={2}
-            maxLength={maximaleTextlaenge}
-            value={text}
-            readOnly={sprachbereichBeschaeftigt}
-            onChange={(event) => aendereText(event.target.value)}
-            placeholder="z. B. Buche morgen von 10 bis 11 Uhr den Untersuchungsraum mit Ultraschall zur Routinekontrolle."
-          />
-        </label>
-        <div className="formularaktionen">
-          {aufnahme.status === 'nimmtAuf' && (
-            <span className="aufnahmeanzeige" role="status">
-              Aufnahme läuft · {formatiereDauer(aufnahme.dauer)} / {formatiereDauer(maximaleAufnahmedauerSekunden)}
-            </span>
-          )}
-          {transkribiert && <span className="aufnahmehinweis" role="status">Sprache wird erkannt …</span>}
-          {aufnahme.status === 'nimmtAuf' ? (
-            <button className="sekundaerknopf aufnahmeknopf-aktiv" type="button" onClick={aufnahme.stoppe}>
-              Aufnahme stoppen
-            </button>
-          ) : (
+        <div className="textanfrage-eingabe">
+          <div className="formularfeld textanfrage-feld">
+            <textarea
+              ref={textfeld}
+              rows={2}
+              maxLength={maximaleTextlaenge}
+              value={text}
+              readOnly={sprachbereichBeschaeftigt}
+              onChange={(event) => aendereText(event.target.value)}
+              aria-labelledby="textanfrage-titel"
+              placeholder="z. B. Buche morgen von 10 bis 11 Uhr den Untersuchungsraum mit Ultraschall zur Routinekontrolle."
+            />
+          </div>
+
+          <div className="textanfrage-knoepfe">
+            {aufnahme.status === 'nimmtAuf' ? (
+              <button
+                className="icon-knopf icon-knopf-aufnahme ist-aktiv"
+                type="button"
+                title="Sprachaufnahme stoppen"
+                aria-label="Sprachaufnahme stoppen"
+                onClick={aufnahme.stoppe}
+              >
+                <Square aria-hidden="true" fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                className="icon-knopf icon-knopf-aufnahme"
+                type="button"
+                title="Sprachaufnahme starten"
+                aria-label="Sprachaufnahme starten"
+                disabled={aufnahme.status === 'startet' || transkribiert || status === 'laedt' || deaktiviert}
+                onClick={() => void starteAufnahme()}
+              >
+                {aufnahme.status === 'startet' || transkribiert
+                  ? <LoaderCircle aria-hidden="true" className="ist-drehend" />
+                  : <Mic aria-hidden="true" />}
+              </button>
+            )}
             <button
-              className="sekundaerknopf"
-              type="button"
-              disabled={aufnahme.status === 'startet' || transkribiert || status === 'laedt' || deaktiviert}
-              onClick={() => void starteAufnahme()}
+              className="icon-knopf icon-knopf-interpretieren"
+              type="submit"
+              title="Text interpretieren"
+              aria-label="Text interpretieren"
+              disabled={status === 'laedt' || sprachbereichBeschaeftigt}
             >
-              {aufnahme.status === 'startet' ? 'Mikrofon wird gestartet …' : 'Aufnahme starten'}
+              {status === 'laedt'
+                ? <LoaderCircle aria-hidden="true" className="ist-drehend" />
+                : <Sparkles aria-hidden="true" />}
             </button>
-          )}
-          <button className="sekundaerknopf" type="submit" disabled={status === 'laedt' || sprachbereichBeschaeftigt}>
-            {status === 'laedt' ? 'Interpretiert …' : 'Text interpretieren'}
-          </button>
+          </div>
         </div>
+
+        {(aufnahme.status !== 'bereit' || transkribiert || status === 'laedt') && (
+          <div className="textanfrage-status">
+            {aufnahme.status === 'startet' && <span className="aufnahmehinweis" role="status">Mikrofon wird gestartet …</span>}
+            {aufnahme.status === 'nimmtAuf' && (
+              <span className="aufnahmeanzeige" role="status">
+                Aufnahme läuft · {formatiereDauer(aufnahme.dauer)} / {formatiereDauer(maximaleAufnahmedauerSekunden)}
+              </span>
+            )}
+            {transkribiert && <span className="aufnahmehinweis" role="status">Sprache wird erkannt …</span>}
+            {status === 'laedt' && <span className="aufnahmehinweis" role="status">Text wird interpretiert …</span>}
+          </div>
+        )}
       </form>
 
       {sprachhinweis && <p className="alternativen-hinweis" role="status">{sprachhinweis}</p>}
@@ -200,7 +255,7 @@ function transkriptionsFehlermeldung(fehler: unknown): string {
       ? fehler.daten.detail
       : null
     if (typeof detail === 'string' && detail) return detail
-    if (fehler.status === 503) return 'Die Spracherkennung ist zurzeit nicht verfügbar. Bitte tippe die Anfrage ein oder versuche es später erneut.'
+    if (fehler.status === 503) return 'Die Spracherkennung ist zurzeit nicht verfügbar. Bitte tippen Sie die Anfrage ein oder versuchen Sie es später erneut.'
     return 'Die Sprachaufnahme konnte nicht in Text umgewandelt werden.'
   }
   return 'Der Server ist nicht erreichbar. Die Sprachaufnahme konnte nicht verarbeitet werden.'

@@ -1,14 +1,20 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { aendereBuchung, ApiFehler, holeMedizingeraete, holeRaeume, legeBuchungAn, pruefeBuchungsverfuegbarkeit, sucheAlternativen } from '../../api/client'
 import { useApiDaten } from '../../api/useApiDaten'
 import type { AlternativenAnfrage, AlternativenErgebnis, Buchung, BuchungsEntwurf, Buchungskonflikt, VerfuegbarkeitsErgebnis } from '../../types/api'
 import { Datenzustand } from '../../components/Datenzustand'
+import { DatumZeitFeld } from '../../components/DatumZeitFeld'
+import { EinzelAuswahl, MehrfachAuswahl } from '../../components/Auswahlfelder'
 import { TextBuchungsanfrage } from './TextBuchungsanfrage'
 
 type Props = {
   beimSpeichern: (buchung: Buchung) => void
   beimSchliessen: () => void
   buchungZumBearbeiten?: Buchung
+  /** false, wenn die umgebende Ansicht Überschrift und Zurück-Aktion selbst darstellt. */
+  eigenerKopf?: boolean
+  /** Meldet, ob seit dem Öffnen etwas eingegeben wurde (Formular oder Anfragetext). */
+  beimEingabestatus?: (hatEingaben: boolean) => void
 }
 
 type FormularWerte = {
@@ -108,10 +114,19 @@ function lokaleZeitFuerEingabe(zeitpunkt: string): string {
   return lokaleZeit.toISOString().slice(0, 16)
 }
 
-export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumBearbeiten }: Props) {
+export function NeueBuchungFormular({
+  beimSpeichern,
+  beimSchliessen,
+  buchungZumBearbeiten,
+  eigenerKopf = true,
+  beimEingabestatus,
+}: Props) {
   const { daten: raeume, status: raumStatus, fehlermeldung: raumFehler, erneutLaden: raeumeErneutLaden } = useApiDaten(holeRaeume)
   const { daten: geraete, status: geraeteStatus, fehlermeldung: geraeteFehler, erneutLaden: geraeteErneutLaden } = useApiDaten(holeMedizingeraete)
-  const [werte, setWerte] = useState(() => formularWerteAusBuchung(buchungZumBearbeiten))
+  const [startWerte] = useState(() => formularWerteAusBuchung(buchungZumBearbeiten))
+  const [werte, setWerte] = useState(startWerte)
+  const [textEingegeben, setTextEingegeben] = useState(false)
+  const hatEingaben = textEingegeben || JSON.stringify(werte) !== JSON.stringify(startWerte)
   const [validierungsfehler, setValidierungsfehler] = useState<string[]>([])
   const [pruefergebnis, setPruefergebnis] = useState<VerfuegbarkeitsErgebnis | null>(null)
   const [pruefStatus, setPruefStatus] = useState<'bereit' | 'prueft'>('bereit')
@@ -122,6 +137,10 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
   const [geoeffneteAlternativen, setGeoeffneteAlternativen] = useState<ReadonlySet<string>>(() => new Set())
   const [uebernahmeHinweis, setUebernahmeHinweis] = useState('')
   const alternativenAnfrageVersion = useRef(0)
+
+  useEffect(() => {
+    beimEingabestatus?.(hatEingaben)
+  }, [hatEingaben, beimEingabestatus])
 
   function setFeld<K extends keyof FormularWerte>(feld: K, wert: FormularWerte[K]) {
     setWerte((bisher) => ({ ...bisher, [feld]: wert }))
@@ -206,7 +225,7 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
         (id) => id === alternativId && id !== konflikt.ressourceId,
       )
       if (bereitsAusgewaehlt) {
-        setUebernahmeHinweis('Dieses Medizingerät ist bereits ausgewählt. Wähle bitte eine andere Alternative.')
+        setUebernahmeHinweis('Dieses Medizingerät ist bereits ausgewählt. Bitte wählen Sie eine andere Alternative.')
         return
       }
 
@@ -216,7 +235,8 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
       )
     }
 
-    setUebernahmeHinweis('Alternative übernommen. Bitte prüfe die Verfügbarkeit erneut.')
+    // Das Prüfergebnis vor der Übernahme ist hier noch verfügbar; setFeld verwirft es erst für den nächsten Render.
+    setUebernahmeHinweis(uebernahmeMeldung(konflikt, pruefergebnis?.konflikte ?? []))
   }
 
   async function pruefeVerfuegbarkeit(event: FormEvent<HTMLFormElement>) {
@@ -276,7 +296,7 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
     } catch (fehlerBeimSpeichern) {
       if (fehlerBeimSpeichern instanceof ApiFehler && fehlerBeimSpeichern.status === 409 && istVerfuegbarkeitsergebnis(fehlerBeimSpeichern.daten)) {
         setPruefergebnis(fehlerBeimSpeichern.daten)
-        setServerFehler('Die Ressource wurde inzwischen anderweitig gebucht. Bitte prüfe die Verfügbarkeit erneut.')
+        setServerFehler('Die Ressource wurde inzwischen anderweitig gebucht. Bitte prüfen Sie die Verfügbarkeit erneut.')
       } else {
         setServerFehler(fehlerBeimSpeichern instanceof Error ? fehlerBeimSpeichern.message : 'Buchung konnte nicht gespeichert werden.')
       }
@@ -291,13 +311,18 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
   const ressourcenFehler = [raumFehler, geraeteFehler].filter(Boolean).join(' ')
 
   return (
-    <section className="buchungsformular" aria-labelledby="neue-buchung-titel">
-      <header className="formular-kopf">
-        <h2 id="neue-buchung-titel">{buchungZumBearbeiten ? 'Buchung bearbeiten' : 'Neue Buchung'}</h2>
-        <button className="sekundaerknopf" type="button" onClick={beimSchliessen}>
-          Schließen
-        </button>
-      </header>
+    <section
+      className="buchungsformular"
+      {...(eigenerKopf ? { 'aria-labelledby': 'neue-buchung-titel' } : { 'aria-label': 'Buchungsformular' })}
+    >
+      {eigenerKopf && (
+        <header className="formular-kopf">
+          <h2 id="neue-buchung-titel">{buchungZumBearbeiten ? 'Buchung bearbeiten' : 'Neue Buchung'}</h2>
+          <button className="sekundaerknopf knopf-formular-abbrechen" type="button" onClick={beimSchliessen}>
+            Schließen
+          </button>
+        </header>
+      )}
 
       {ressourcenLaden || ressourcenFehler ? (
         <Datenzustand
@@ -314,7 +339,9 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
         </Datenzustand>
       ) : (
         <>
-        {!buchungZumBearbeiten && <TextBuchungsanfrage beimUebernehmen={uebernehmeEntwurf} deaktiviert={speichert} />}
+        {!buchungZumBearbeiten && (
+          <TextBuchungsanfrage beimUebernehmen={uebernehmeEntwurf} deaktiviert={speichert} beimTextAendern={setTextEingegeben} />
+        )}
 
         <form onSubmit={pruefeVerfuegbarkeit} noValidate>
           <div className="formularraster">
@@ -329,47 +356,43 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
               />
             </label>
 
-            <label className="formularfeld">
-              <span>Beginn</span>
-              <input
-                type="datetime-local"
-                value={werte.beginn}
-                onChange={(event) => setFeld('beginn', event.target.value)}
-              />
-            </label>
+            <DatumZeitFeld
+              bezeichnung="Beginn"
+              wert={werte.beginn}
+              beimAendern={(wert) => setFeld('beginn', wert)}
+            />
 
-            <label className="formularfeld">
-              <span>Ende</span>
-              <input
-                type="datetime-local"
-                value={werte.ende}
-                onChange={(event) => setFeld('ende', event.target.value)}
-              />
-            </label>
+            <DatumZeitFeld
+              bezeichnung="Ende"
+              wert={werte.ende}
+              bezugsWert={werte.beginn}
+              beimAendern={(wert) => setFeld('ende', wert)}
+            />
 
-            <label className="formularfeld">
-              <span>Raum</span>
-              <select value={werte.raumId} onChange={(event) => setFeld('raumId', event.target.value)}>
-                <option value="">Raum auswählen</option>
-                {aktiveRaeume.map((raum) => (
-                  <option key={raum.id} value={raum.id}>{raum.name} · {raum.standort}</option>
-                ))}
-              </select>
-            </label>
+            <EinzelAuswahl
+              bezeichnung="Raum"
+              platzhalter="Raum suchen oder auswählen"
+              optionen={aktiveRaeume.map((raum) => ({
+                wert: String(raum.id),
+                titel: raum.name,
+                beschreibung: raum.standort,
+              }))}
+              wert={werte.raumId}
+              beimAendern={(wert) => setFeld('raumId', wert)}
+            />
 
-            <label className="formularfeld">
-              <span>Medizingeräte <small>(optional, Mehrfachauswahl)</small></span>
-              <select
-                multiple
-                size={4}
-                value={werte.medizingeraetIds.map(String)}
-                onChange={(event) => setFeld('medizingeraetIds', Array.from(event.currentTarget.selectedOptions, (option) => Number(option.value)))}
-              >
-                {aktiveGeraete.map((geraet) => (
-                  <option key={geraet.id} value={geraet.id}>{geraet.name} · {geraet.geraetetyp}</option>
-                ))}
-              </select>
-            </label>
+            <MehrfachAuswahl
+              bezeichnung="Medizingeräte"
+              zusatz="(optional)"
+              platzhalter="Geräte suchen oder auswählen"
+              optionen={aktiveGeraete.map((geraet) => ({
+                wert: String(geraet.id),
+                titel: geraet.name,
+                beschreibung: `${geraet.geraetetyp} · ${geraet.standort}`,
+              }))}
+              werte={werte.medizingeraetIds.map(String)}
+              beimAendern={(ids) => setFeld('medizingeraetIds', ids.map(Number))}
+            />
           </div>
 
           {validierungsfehler.length > 0 && (
@@ -462,11 +485,11 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
           {uebernahmeHinweis && <p className="alternativen-hinweis" role="status">{uebernahmeHinweis}</p>}
 
           <div className="formularaktionen">
-            <button className="sekundaerknopf" type="submit" disabled={pruefStatus === 'prueft' || speichert}>
+            <button className="sekundaerknopf knopf-verfuegbarkeit" type="submit" disabled={pruefStatus === 'prueft' || speichert}>
               {pruefStatus === 'prueft' ? 'Prüft …' : 'Verfügbarkeit prüfen'}
             </button>
             <button
-              className="primaerknopf"
+              className="primaerknopf knopf-buchung-speichern"
               type="button"
               disabled={!pruefergebnis?.anfrageGueltig || !pruefergebnis.verfuegbar || speichert || pruefStatus === 'prueft'}
               onClick={speichereBuchung}
@@ -483,6 +506,24 @@ export function NeueBuchungFormular({ beimSpeichern, beimSchliessen, buchungZumB
 
 function konfliktSchluessel(konflikt: Buchungskonflikt): string {
   return `${konflikt.ressourceTyp}:${konflikt.ressourceId}`
+}
+
+/** Beschreibt anhand des bisherigen Prüfergebnisses, welcher Konflikt gelöst wurde und welche noch offen sind. */
+function uebernahmeMeldung(geloest: Buchungskonflikt, bisherigeKonflikte: Buchungskonflikt[]): string {
+  // Wie in der Anzeige zählt jede Ressource einmal, auch wenn sie mehrfach belegt ist.
+  const verbleibend = new Set(bisherigeKonflikte.map(konfliktSchluessel))
+  verbleibend.delete(konfliktSchluessel(geloest))
+  const raeume = [...verbleibend].filter((schluessel) => schluessel.startsWith('Raum:')).length
+  const geraete = verbleibend.size - raeume
+
+  if (verbleibend.size === 0) return 'Alle Konflikte wurden gelöst. Bitte prüfen Sie die Verfügbarkeit erneut.'
+
+  const geloesteArt = geloest.ressourceTyp === 'Raum' ? 'Raumkonflikt' : 'Gerätekonflikt'
+  const offen = [
+    raeume > 0 ? `${raeume} ${raeume === 1 ? 'Raumkonflikt' : 'Raumkonflikte'}` : '',
+    geraete > 0 ? `${geraete} ${geraete === 1 ? 'Gerätekonflikt' : 'Gerätekonflikte'}` : '',
+  ].filter(Boolean).join(' und ')
+  return `${geloesteArt} gelöst. Es ${verbleibend.size === 1 ? 'besteht' : 'bestehen'} noch ${offen}.`
 }
 
 function formatiereZeitpunkt(zeitpunkt: string): string {
