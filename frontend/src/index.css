@@ -1,12 +1,21 @@
+@import './styles/tokens.css';
+
 :root {
-  font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
-  color: #173d32;
-  background: #f6f8f5;
+  font-family: var(--schrift-basis);
+  font-size: 100%;
+  line-height: var(--zeilenhoehe-basis);
+  color: var(--farbe-text);
+  background: var(--farbe-hintergrund);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
+}
+
+/* Platz für die Scrollleiste immer reservieren, damit wachsende Inhalte das Layout nicht seitlich verschieben. */
+html {
+  scrollbar-gutter: stable;
 }
 
 * {
@@ -17,8 +26,23 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--farbe-hintergrund);
+  color: var(--farbe-text);
 }
 
 button {
   font: inherit;
+}
+
+::selection {
+  background: var(--farbe-primaer-hell);
+  color: var(--farbe-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,4 +1,4 @@
-export type Ansicht = 'buchungen' | 'raeume' | 'medizingeraete'
+export type Ansicht = 'uebersicht' | 'buchungen' | 'raeume' | 'medizingeraete'
 
 type Props = {
   aktuelleAnsicht: Ansicht
@@ -6,6 +6,7 @@ type Props = {
 }
 
 const menuepunkte: { id: Ansicht; titel: string; zeichen: string }[] = [
+  { id: 'uebersicht', titel: 'Übersicht', zeichen: 'Ü' },
   { id: 'buchungen', titel: 'Buchungen', zeichen: 'B' },
   { id: 'raeume', titel: 'Räume', zeichen: 'R' },
   { id: 'medizingeraete', titel: 'Medizingeräte', zeichen: 'M' },

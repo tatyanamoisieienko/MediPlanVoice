@@ -1,0 +1,97 @@
+/*
+ * Design-Tokens für MediPlan Voice.
+ * Alle Farben, Abstände, Rahmen, Radien und Schatten werden hier zentral gepflegt.
+ */
+:root {
+  /* Grundpalette */
+  --farbe-primaer: #1687bf;
+  --farbe-primaer-hell: #ddf1fc;
+  --farbe-hintergrund: #f4f9fd;
+  --farbe-karte: #ffffff;
+  --farbe-text: #173c58;
+
+  /* Ableitungen der Primärfarbe */
+  --farbe-primaer-kraeftig: #1478aa; /* gefüllte Buttons und Textlinks, Kontrast zu Weiß ca. 4,8:1 */
+  --farbe-primaer-dunkel: #0f6592; /* Hover auf gefüllten Buttons */
+  --farbe-primaer-hauch: #eef8fe; /* sehr helle Flächen, Hover auf hellen Elementen */
+  --farbe-primaer-akzent: #0f5f88; /* Text auf hellblauen Flächen */
+  --farbe-primaer-hell-aktiv: #cbe8f9; /* ausgewählt und zugleich hervorgehoben */
+  --farbe-primaer-hell-rahmen: #b5dbf1; /* Rahmen hellblauer Chips */
+
+  /* Text */
+  --farbe-text-gedaempft: #3f5d74;
+  --farbe-text-leise: #5b7489; /* Metainformationen, Kontrast zu Weiß ca. 4,9:1 */
+  --farbe-text-invers: #ffffff;
+
+  /* Rahmen */
+  --farbe-rahmen: #dbe8f2;
+  --farbe-rahmen-stark: #c3d8e8;
+  --farbe-rahmen-eingabe: #7596ae; /* Eingabefelder, Kontrast zu Weiß ca. 3:1 */
+  --farbe-tabellenkopf: #f7fbfe;
+
+  /* Deaktiviert */
+  --farbe-deaktiviert-flaeche: #e6eef4;
+  --farbe-deaktiviert-text: #7f95a6;
+  --farbe-deaktiviert-rahmen: #d3e0ea;
+
+  /* Status */
+  --farbe-erfolg: #2e9a6b;
+  --farbe-erfolg-hell: #e8f6ef;
+  --farbe-erfolg-text: #1f6b4a;
+  --farbe-warnung: #d99a2b;
+  --farbe-warnung-hell: #fff6e5;
+  --farbe-warnung-text: #7a5410;
+  --farbe-fehler: #d4574a;
+  --farbe-fehler-hell: #fdeeec;
+  --farbe-fehler-rahmen: #f0c4bd;
+  --farbe-fehler-text: #9b2f24;
+  --farbe-neutral: #8a9eae;
+  --farbe-neutral-hell: #eef2f5;
+  --farbe-neutral-text: #4f6476;
+
+  /* Typografie */
+  --schrift-basis: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --schrift-ueberschrift: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --schriftgroesse-xs: 0.75rem;
+  --schriftgroesse-s: 0.8125rem;
+  --schriftgroesse-m: 0.875rem;
+  --schriftgroesse-basis: 0.9375rem;
+  --schriftgroesse-l: 1.125rem;
+  --schriftgroesse-xl: 1.375rem;
+  --schriftgroesse-xxl: 1.875rem;
+  --zeilenhoehe-basis: 1.5;
+
+  /* Abstände */
+  --abstand-1: 0.25rem;
+  --abstand-2: 0.5rem;
+  --abstand-3: 0.75rem;
+  --abstand-4: 1rem;
+  --abstand-5: 1.25rem;
+  --abstand-6: 1.5rem;
+  --abstand-8: 2rem;
+  --abstand-10: 2.5rem;
+  --abstand-12: 3rem;
+
+  /* Rahmenstärken und Radien */
+  --rahmen-duenn: 1px;
+  --rahmen-akzent: 4px;
+  --radius-klein: 0.5rem;
+  --radius-mittel: 0.75rem;
+  --radius-gross: 1rem;
+  --radius-voll: 999px;
+
+  /* Schatten */
+  --schatten-klein: 0 1px 2px rgba(23, 60, 88, 0.06);
+  --schatten-karte: 0 1px 2px rgba(23, 60, 88, 0.05), 0 6px 20px rgba(23, 60, 88, 0.06);
+  --schatten-angehoben: 0 4px 10px rgba(23, 60, 88, 0.08), 0 14px 32px rgba(23, 60, 88, 0.1);
+  --schatten-knopf: 0 1px 2px rgba(20, 120, 170, 0.25);
+  --fokusring: 0 0 0 3px rgba(22, 135, 191, 0.3);
+
+  /* Layout */
+  --hoehe-kopfzeile: 4.5rem;
+  --breite-seitenleiste: 15rem;
+  --hoehe-eingabe: 2.75rem;
+
+  /* Bewegung */
+  --uebergang: 150ms ease;
+}

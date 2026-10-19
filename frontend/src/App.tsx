@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BuchungenAnsicht } from './features/buchungen/BuchungenAnsicht'
 import { MedizingeraeteAnsicht } from './features/medizingeraete/MedizingeraeteAnsicht'
 import { RaeumeAnsicht } from './features/raeume/RaeumeAnsicht'
+import { UebersichtAnsicht } from './features/uebersicht/UebersichtAnsicht'
 import { Seitennavigation, type Ansicht } from './components/Seitennavigation'
 import './App.css'
 
@@ -25,6 +26,7 @@ function App() {
         </aside>
 
         <main className="seiteninhalt">
+          {ansicht === 'uebersicht' && <UebersichtAnsicht />}
           {ansicht === 'buchungen' && <BuchungenAnsicht />}
           {ansicht === 'raeume' && <RaeumeAnsicht />}
           {ansicht === 'medizingeraete' && <MedizingeraeteAnsicht />}
